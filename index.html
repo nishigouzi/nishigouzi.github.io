@@ -177,8 +177,9 @@
 
 <p>安装cnpm，这个比npm快一些</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">npm isntall -g cnpm --registry=https://registry.npm.taobao.org</span><br><span class="line"><span class="meta">#</span><span class="bash"> 安装完成之后输入下面的命令检查版本</span></span><br><span class="line">cnpm -v</span><br></pre></td></tr></table></figure>
+
 <p>如果<code>cnpm -v</code>命令报错的话，把cnpm的安装路径添加到系统环境变量里去</p>
-<h2 id="二、安装hexo博客"><a href="#二、安装hexo博客" class="headerlink" title="二、安装hexo博客"></a>二、安装hexo博客</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">cnpm install -g hexo-cli</span><br><span class="line"><span class="meta">#</span><span class="bash"> 安装完成之后输入下面的命令检查版本</span></span><br><span class="line">hexo -v</span><br></pre></td></tr></table></figure>
+<h2 id="二、安装hexo博客"><a href="#二、安装hexo博客" class="headerlink" title="二、安装hexo博客"></a>二、安装hexo博客</h2><figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">cnpm install -g hexo-cli</span><br><span class="line"></span><br><span class="line"><span class="meta">#</span><span class="bash"> 安装完成之后输入下面的命令检查版本</span></span><br><span class="line">hexo -v</span><br></pre></td></tr></table></figure>
 
 <p>找个地方建立一个博客的文件夹，例如C:\Users\ovo\blog</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 进入blog文件夹，执行命令</span></span><br><span class="line">hexo init</span><br></pre></td></tr></table></figure>
@@ -210,9 +211,11 @@
 <p>那么可以尝试如下的指令</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">git config --global http.postBuffer 524288000</span><br><span class="line">git clone https://github.com/litten/hexo-theme-yilia.git --depth 1 themes/yilia</span><br><span class="line">cd themes/yilia</span><br><span class="line">git fetch --unshallow</span><br></pre></td></tr></table></figure>
 
-<p>depth用于指定克隆深度，为1即表示只克隆最近一次commit.  使用浅复制可以大大减少下载的数据量，例如， CodeIgniter 项目完整下载有近 100MiB ，而使用浅复制只有 5MiB 多，这样即使在恶劣的网络环境下，也可以快速的获得代码。如果之后又想获取完整历史信息，可以使用命令<code>git fetch --unshallow</code>.<br>git clone 默认会下载项目的完整历史版本，如果你只关心最新版的代码，而不关心之前的历史信息，可以使用 git 的浅复制功能</p>
+<p>depth用于指定克隆深度，为1即表示只克隆最近一次commit.  使用浅复制可以大大减少下载的数据量，例如， CodeIgniter 项目完整下载有近 100MiB ，而使用浅复制只有 5MiB 多，这样即使在恶劣的网络环境下，也可以快速的获得代码。如果之后又想获取完整历史信息，可以使用命令<code>git fetch --unshallow</code>.</p>
+<p>git clone 默认会下载项目的完整历史版本，如果你只关心最新版的代码，而不关心之前的历史信息，可以使用 git 的浅复制功能</p>
 <p><strong>更改_config.yml配置文件</strong></p>
 <figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment"># Extensions</span></span><br><span class="line"><span class="comment">## Plugins: https://hexo.io/plugins/</span></span><br><span class="line"><span class="comment">## Themes: https://hexo.io/themes/</span></span><br><span class="line"><span class="attr">theme:</span> <span class="string">yilia</span></span><br></pre></td></tr></table></figure>
+
 <p>然后重新执行以下命令来查看效果</p>
 <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">hexo clean</span><br><span class="line">hexo g</span><br><span class="line">hexo s</span><br></pre></td></tr></table></figure>
 
