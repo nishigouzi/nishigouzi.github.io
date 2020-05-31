@@ -18,9 +18,12 @@
 <meta property="og:image" content="http://bwqueen.com/2020/05/30/Redis%E6%80%BB%E7%BB%93/image-20200525234554392.png">
 <meta property="og:image" content="http://bwqueen.com/2020/05/30/Redis%E6%80%BB%E7%BB%93/image-20200530224430419.png">
 <meta property="og:image" content="http://bwqueen.com/2020/05/30/Redis%E6%80%BB%E7%BB%93/image-20200530224523733.png">
-<meta property="og:image" content="c:%5CUsers%5Covo%5CDesktop%5CRedis%E6%80%BB%E7%BB%93%5Cimage-20200530231323614.png">
+<meta property="og:image" content="http://bwqueen.com/2020/05/30/Redis%E6%80%BB%E7%BB%93/image-20200530231323614.png">
+<meta property="og:image" content="http://bwqueen.com/2020/05/30/Redis%E6%80%BB%E7%BB%93/image-20200531175153406.png">
+<meta property="og:image" content="http://bwqueen.com/2020/05/30/Redis%E6%80%BB%E7%BB%93/image-20200531183112650.png">
+<meta property="og:image" content="http://bwqueen.com/2020/05/30/Redis%E6%80%BB%E7%BB%93/image-20200531203023271.png">
 <meta property="article:published_time" content="2020-05-30T15:49:14.000Z">
-<meta property="article:modified_time" content="2020-05-30T16:00:47.090Z">
+<meta property="article:modified_time" content="2020-05-31T15:53:17.754Z">
 <meta property="article:author" content="Bwqueen">
 <meta property="article:tag" content="redis">
 <meta name="twitter:card" content="summary">
@@ -493,7 +496,8 @@
 <p>watch key [key…]：监视一个（或多个）key，如果在事务执行之前这个（或这些）key被其他命令所改动，那么事务将被打断。</p>
 </blockquote>
 <p>实例：</p>
-<p><img src="C:%5CUsers%5Covo%5CDesktop%5CRedis%E6%80%BB%E7%BB%93%5Cimage-20200530231323614.png" alt="image-20200530231323614"></p>
+<img src="/2020/05/30/Redis%E6%80%BB%E7%BB%93/image-20200530231323614.png" class="">
+
 <h5 id="重点补充"><a href="#重点补充" class="headerlink" title="重点补充"></a>重点补充</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">输入Multi命令开始，输入的命令都会依次进入命令队列中，但不会执行</span><br><span class="line">直到输入exec后，Redis会将之前队列中的命令依次执行</span><br><span class="line"></span><br><span class="line">discard放弃队列执行</span><br><span class="line"></span><br><span class="line">如果某个命令报出错，则只有报错的命令不会被执行，而其他的命令都会执行，不会回滚。</span><br><span class="line"></span><br><span class="line">如果队列中某个命令出现报告错误（语法错误），执行时整个队列都会被取消</span><br></pre></td></tr></table></figure>
 
 <h5 id="应用场景-6"><a href="#应用场景-6" class="headerlink" title="应用场景"></a>应用场景</h5><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">一组命令必须同时都执行，或者都不执行。</span><br><span class="line">我们想要保证一组命令在执行的过程之中不被其他命令插入</span><br></pre></td></tr></table></figure>
@@ -524,7 +528,187 @@
 <ul>
 <li>产生的问题：<br>有些命令是多余的。</li>
 </ul>
+<h4 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h4><h5 id="穿透"><a href="#穿透" class="headerlink" title="穿透"></a>穿透</h5><p>缓存穿透是查询一个一定不存在的数据，由于缓存是不命中时需要从数据库查询，查不到数据则不写入缓存，这将导致这个不存在的数据每次请求都要到数据库去查询，造成缓存穿透</p>
+<ul>
+<li>解决办法</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">持久层查询不到就缓存空结果(eg：redis.set(key, &quot;null&quot;)，查询时先判断缓存中是否exists(key)，如果有直接返回空，没有则查询后返回，注意insert时需要清除查询时的key，否则即便DB中有值也查询不到（当然也可以设置空缓存的过期时间）</span><br></pre></td></tr></table></figure>
 
+
+
+<h5 id="雪崩"><a href="#雪崩" class="headerlink" title="雪崩"></a>雪崩</h5><p>缓存大量失效的时候，引发大量查询数据库</p>
+<ul>
+<li>解决办法</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">- 用锁&#x2F;分布式锁或者队列串行访问</span><br><span class="line">- 缓存失效事件均匀分布</span><br></pre></td></tr></table></figure>
+
+
+
+<h5 id="热点key"><a href="#热点key" class="headerlink" title="热点key"></a>热点key</h5><p>某个key访问非常频繁，当key失效的时候有大量的线程来构建缓存，导致负载增加，系统崩溃</p>
+<ul>
+<li>解决办法</li>
+</ul>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line">1.使用锁，单机用synchronized, lock等，分布式用分布式锁</span><br><span class="line">2.缓存过期时间不设置，而是设置在key对应的value里。如果检测到存的时间超过过期时间则异步更新缓存。</span><br><span class="line">3.在value设置一个比过期时间t0小的过期时间t1，当t1过期的时候，延长t1并做更新缓存操作。</span><br><span class="line">4.设置标签缓存，标签缓存设置过期时间，标签缓存设置过期时间，标签缓存过期后，需异步的更新实际缓存</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="Redis主从复制"><a href="#Redis主从复制" class="headerlink" title="Redis主从复制"></a>Redis主从复制</h4><p>一个Redis服务可以有多个该服务的复制品，这个Redis服务称为Master，其他复制称为Slaves</p>
+<img src="/2020/05/30/Redis%E6%80%BB%E7%BB%93/image-20200531175153406.png" class="">
+
+<p><strong>好处：</strong></p>
+<blockquote>
+<ol>
+<li><p>读写分离</p>
+<p>不仅可以提高服务器的负载能力，并且可以根据请求的规模自由增加或者减少从库的数量。</p>
+</li>
+<li><p>数据被复制成了好几份</p>
+<p>就算有一台机器出现故障，也可以使用其他机器的数据快速回复。</p>
+<p>在redis主从模式中，一台主库可以有多个从库，但一个从库只能隶属一个主库</p>
+</li>
+</ol>
+</blockquote>
+<h5 id="Redis主从复制配置"><a href="#Redis主从复制配置" class="headerlink" title="Redis主从复制配置"></a>Redis主从复制配置</h5><ol>
+<li>主数据库中不需要任何配置，创建一个从数据库：</li>
+</ol>
+<p>redis.conf（配置文件信息）</p>
+<figure class="highlight yml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="string">--</span> <span class="string">port</span> <span class="number">6380</span>	<span class="comment">#从服务的端口号</span></span><br><span class="line"><span class="string">--</span> <span class="string">slaveof</span> <span class="number">127.0</span><span class="number">.0</span><span class="number">.1</span> <span class="number">6379</span>	<span class="comment">#指定主服务器</span></span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>启动从数据库：</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./bin/redis-server ./redis.conf --port 6380 --slaveof 127.0.0.1 6379</span><br></pre></td></tr></table></figure>
+
+<p>加上slaveof参数启动另一个Redis实例作为从库，并且监听6380端口</p>
+<ol start="3">
+<li>登录到从服务客户端</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./bin/redis-cli -p 6380 -a 123456</span><br></pre></td></tr></table></figure>
+
+<p>命令：</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">变回主库: slaveof no one  #不是任何库的从库</span><br><span class="line">变回从库: slaveof ip地址 端口号</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h4 id="哨兵模式"><a href="#哨兵模式" class="headerlink" title="哨兵模式"></a>哨兵模式</h4><p>Redis-Sentinel 哨兵模式是高可用解决方案，当redis在做master-slave的高可用方案时，加入master宕机了，redis本身（以及很多客户端）都没有实现自动进行主备切换，而redis-sentinel本身是独立运行的进程，可以部署在其他与redis集群可通讯的机器中监控redis集群。哨兵监控Reis系统的运行状况</p>
+<img src="/2020/05/30/Redis%E6%80%BB%E7%BB%93/image-20200531183112650.png" class="">
+
+
+
+<p><strong>哨兵模式的特点</strong></p>
+<ul>
+<li><p>不时地监控redi s是否按照预期良好地运行;</p>
+</li>
+<li><p>如果发现某个redis节点运行出现状况，能够通知另外-一个进程(例如它的客户端) </p>
+</li>
+<li><p>能够进行自动切换。</p>
+<p>当一个master节点不可用时，能够选举出master的多个slave (如果有超过一个slave的话)中的一个来作为新的master，其它的slave节点会将它所追随的master的地址改为被提升为master的slave的新地址</p>
+</li>
+<li><p>哨兵为客户端提供服务发现，客户端链接哨兵，哨兵提供当前master的地址然后提供服务，如果出现切换，也就是master挂了，哨兵会提供客户端一个新地址。</p>
+</li>
+</ul>
+<h4 id="Redis-Cluster集群"><a href="#Redis-Cluster集群" class="headerlink" title="Redis Cluster集群"></a>Redis Cluster集群</h4><figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">为了在大数据访问下提供稳定的业务，集群化是存储的必然形态</span><br><span class="line">未来的发展趋势肯定是云计算和大数据的紧密结合</span><br><span class="line">只有分布式架构能满足要求</span><br></pre></td></tr></table></figure>
+
+<p>Redis集群搭建的方式有很多种，但从redis3.0之后版本支持redis-cluster集群，至少需要3(Master)+3(Slave)才能建立集群。Redis-Cluster采用无中心结构，每个节点保存数据和整个集群状态，每个节点都和其他所有节点连接。其redis-cluster架构图如下所示：</p>
+<img src="/2020/05/30/Redis%E6%80%BB%E7%BB%93/image-20200531203023271.png" class="">
+
+<p>Redis-Cluster集群节点最小配置6个节点以上(3主3从)，其中主节点提供读写操作，从节点作为备用节点，不提供请求，只作为故障转移使用。</p>
+<p><strong>Redis-Cluster集群特点</strong></p>
+<blockquote>
+<ol>
+<li><p>所有的redis节点彼此互联(PING-PONG机制)，内部使用二进制协议优化传输速度和带宽。</p>
+</li>
+<li><p>节点的fail是通过集群中超过半数的节点检测失效时才生效。</p>
+</li>
+<li><p>客户端与redis节点直连,不需要中间proxy层. 客户端不需要连接集群所有节点, 连接集群中任何一个可用节点即可。</p>
+</li>
+<li><p>redis-cluster把所有的物理节点映射到[0-16383]slot上(不一定是平均分配) ,cluster负责维护</p>
+</li>
+<li><p>Redis集群预分好16384个哈希槽，当需要在 Redis集群中放置一个 key-value时，redis 先对key使用crc16算法算出一个结果，然后把结果对16384求余数，这样每个key都会对应一个编号在 0-16383之间的哈希槽，redis会根据节点数量大致均等的将哈希槽映射到不同的节</p>
+</li>
+</ol>
+</blockquote>
+<p><strong>Redis-Cluster容错</strong></p>
+<p>容错性，是指软件检测应用程序所运行的软件或硬件中发生的错误并从错误中恢复的能力,通常可以从系统的可靠性、可用性、可测性等几个方面来衡量。</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">1. 什么时候判断master不可用?</span><br><span class="line">投票机制。投票过程是集群中所有master参与，如果半数以上master节点与master节点通信超时(cluster-node-timeout),认为当前master节点挂掉.s</span><br><span class="line"></span><br><span class="line">2. 什么时候整个集群不可用(cluster_state:fail)?</span><br><span class="line">如果集群任意master挂掉,且当前master没有slave.集群进入fail状态,也可以理解成集群的slot映射[0-16383]不完整时进入fail状态.如果集群超过半数以上master挂掉，无论是否有slave ，集群进入fail状态.</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>Redis Cluster节点分配</strong></p>
+<p>​        Redis Cluster采用虚拟槽分区，所有的键根据哈希函数映射到0~ 16383个整数槽内，每个节负责维护一部分槽以及槽所映射的键值数据。</p>
+<p>​        三个主节点分别是:A, B, C三个节点，它们可以是一台机器上的三个端口，也可以是三台不同的服务器。那么,采用哈希槽(hash slot)的方式来分配16384个slot的话，它们三个节点分别承担的slot区间是</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">节点A要盖 0- 5460;</span><br><span class="line">节点B覆盖 5461 - 10922;</span><br><span class="line">节点C覆盖 10923 - 16383</span><br></pre></td></tr></table></figure>
+
+
+
+
+
+<h4 id="Redis-Cluster集群搭建"><a href="#Redis-Cluster集群搭建" class="headerlink" title="Redis Cluster集群搭建"></a>Redis Cluster集群搭建</h4><p>集群搭建参考官网: <a href="https://redis.io/topics/cluster-tutorial" target="_blank" rel="noopener">https://redis.io/topics/cluster-tutorial</a><br>        redis集群需要至少要三个master节点，我们这里搭建三个master节点，并且给每个master再搭建一个slave节点，总共6个redis节点，这里用一台机器(可以多台机器部署，修改一下ip地址就可以了 )部署6个redis实例。三主三从，搭建集群(<a style="color:red">只适用Redis5以上</a>)的步骤如下:</p>
+<ol>
+<li>创建Redis节点安装目录</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkdir -p /usr/loca1/redis_cluster	#指定目录下创建redis_ cluster</span><br></pre></td></tr></table></figure>
+
+<ol start="2">
+<li>在redis_cluster目录下，创建7000-7005个文件夹</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">mkdir 7000 7001 7002 7003 7004 7005</span><br></pre></td></tr></table></figure>
+
+<ol start="3">
+<li>并将redis-conf分别拷贝到7000-7005文件夹</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">cp /opt/redis-5 .0.4/redis. conf ./7000</span><br></pre></td></tr></table></figure>
+
+<ol start="4">
+<li>修改Redis配置文件<br>/usr/local/redis_ cluster/7000/redis.conf</li>
+</ol>
+<figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#关闭保护模式用于公网访问</span></span><br><span class="line"><span class="meta">protected-mode</span> <span class="string">no</span></span><br><span class="line"><span class="attr">port</span> <span class="string">7000</span></span><br><span class="line"><span class="comment">#开启集群模式</span></span><br><span class="line"><span class="meta">cluster-ensbled</span> <span class="string">yes</span></span><br><span class="line"><span class="meta">cluster-config-file</span> <span class="string">nodes-7000.conf</span></span><br><span class="line"><span class="meta">cluster-node-timeout</span> <span class="string">5000</span></span><br><span class="line"><span class="comment">#后台启动</span></span><br><span class="line"><span class="attr">daemonize</span> <span class="string">yes</span></span><br><span class="line"><span class="attr">pidfile</span> <span class="string">/var/run/redis_7000.pid</span></span><br><span class="line"><span class="attr">logfile</span> <span class="string">"7000.log"</span></span><br><span class="line"><span class="comment">#dir /redis/data</span></span><br><span class="line"><span class="comment">#此处绑定ip可以是阿里内网ip和本地ip也可以直接注释掉该项</span></span><br><span class="line"><span class="comment">#bind 127.0.0.1</span></span><br><span class="line"><span class="comment">#用于连接主节点密码</span></span><br><span class="line"><span class="attr">masterauth</span> <span class="string">123456</span></span><br><span class="line"><span class="comment">#设置redis密码各个节点请保持密码一一致</span></span><br><span class="line"><span class="attr">requirepass</span> <span class="string">123456</span></span><br></pre></td></tr></table></figure>
+
+<ol start="5">
+<li>依次复制并修改6个redis.conf</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">cp ./7000/redis.conf ./7001/   #依次进行复制</span><br><span class="line">vim ./7001/redis.conf     #执行%s/o1d/new/g全部替换</span><br></pre></td></tr></table></figure>
+
+<ol start="6">
+<li>依次启动6个节点</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">#</span><span class="bash"> 将安装的redis目录下的src复制到cluster下,方便启动服务端</span></span><br><span class="line">cd /opt/redis-5.0.0 : 进入redis安装目录</span><br><span class="line">cp -r ./src/ /usr/1oca1/redis_cluster/ :将src文件复制到redis_cluster目录中</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">./src/redis-server ./7000/redis.conf</span><br><span class="line">./src/redis-server ./7001/redis.conf</span><br><span class="line">./src/redis-server ./7002/redis.conf</span><br><span class="line">./src/redis-server ./7003/redis.conf</span><br><span class="line">./src/redis-server ./7004/redis.conf</span><br><span class="line">./src/redis-server ./7005/redis.conf</span><br></pre></td></tr></table></figure>
+
+<p>启动后,可以用PS查看进程:</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">ps -ef | grep -i redis</span><br></pre></td></tr></table></figure>
+
+<ol start="7">
+<li>创建集群<br>Redis 5版本后通过redis-cli 客户端命令来创建集群。</li>
+</ol>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">./src/redis-cli --cluster create -a 123456 127.0.0.1:7000 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005 --cluster-replicas 1</span><br></pre></td></tr></table></figure>
+
+
+
+<h5 id="Redis-Cluster集群验证"><a href="#Redis-Cluster集群验证" class="headerlink" title="Redis Cluster集群验证"></a>Redis Cluster集群验证</h5><p>在某台机器上(或)连接集群的7001端口的节点:</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">redis-cli -h 127.0.0.1 -C -p 7000 -a 123456    #加参数 -C可连接到集群</span><br></pre></td></tr></table></figure>
+
+<blockquote>
+<p>redis cluster在设计的时候,就考虑到了去中心化,去中间件,也就是说,集群中的每个节点都是平等的关系,都<br>是对等的,每个节点都保存各自的数据和整个集群的状态。每个节点都和其他所有节点连接,而且这些连接保持活跃，这样就保证了我们只需要连接集群中的任意一个节点 ,就可以获取到其他节点的数据</p>
+</blockquote>
+<h5 id="Redis-Cluster关闭集群"><a href="#Redis-Cluster关闭集群" class="headerlink" title="Redis Cluster关闭集群"></a>Redis Cluster关闭集群</h5><ol>
+<li>开启全部redis节点redisall.sh</li>
+</ol>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">&#x2F;usr&#x2F;1ocal&#x2F;redis_cluster&#x2F;src&#x2F;redis-server .&#x2F;7000&#x2F;redis.conf</span><br><span class="line">&#x2F;usr&#x2F;1ocal&#x2F;redis_cluster&#x2F;src&#x2F;redis-server .&#x2F;7001&#x2F;redis.conf</span><br><span class="line">&#x2F;usr&#x2F;local&#x2F;redis_cluster&#x2F;src&#x2F;redis-server .&#x2F;7002&#x2F;redis.conf</span><br><span class="line">&#x2F;usr&#x2F;local&#x2F;redis_cluster&#x2F;src&#x2F;redis-server .&#x2F;7003&#x2F;redis.conf</span><br><span class="line">&#x2F;usr&#x2F;1ocal&#x2F;redis_cluster&#x2F;src&#x2F;redis-server .&#x2F;7004&#x2F;redis.conf</span><br><span class="line">&#x2F;usr&#x2F;1ocal&#x2F;redis_cluster&#x2F;src&#x2F;redis-server .&#x2F;7005&#x2F;redis.conf</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">chmod u+x redisall.sh    		#执行将redisall.sh变成可执行文件</span><br><span class="line">./redisall.sh			#在当前目录下启动</span><br></pre></td></tr></table></figure>
+
+<p><strong>启动集群</strong><br>vim starall.sh追加如下内容: (记得改自己ip地址和密码)</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">/usr/loca1/redis_cluster/src/redis-cli --cluster create -a 123456 127.0.0.1:7000 127.0.0.1:7001 127.0.0.1:7002 127.0.0.1:7003 127.0.0.1:7004 127.0.0.1:7005 --cluster-</span><br><span class="line">replicas 1</span><br></pre></td></tr></table></figure>
+
+
+
+<p><strong>关闭集群</strong><br>/usr/local/redis_ cluster目录下编写脚本文件: vim shutdown.sh<br>内容如下:</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">/usr/1ocal/redis_cluster/src/redis-cli -C -h 127.0.0.1 -p 7000 -a 123456 shut down</span><br><span class="line">/usr/1ocal/redis_cluster/src/redis-cli -C -h 127.0.0.1 -p 7001 -a 123456 shut down</span><br><span class="line">/usr/1ocal/redis_cluster/src/redis-cli -C -h 127.0.0.1 -p 7002 -a 123456 shut down</span><br><span class="line">/usr/local/redis_cluster/src/redis-cli -C -h 127.0.0.1 -p 7003 -a 123456 shut down</span><br><span class="line">/usr/local/redis_cluster/src/redis-cli -C -h 127.0.0.1 -p 7004 -a 123456 shut down</span><br><span class="line">/usr/1ocal/redis_cluster/src/redis-cli -C -h 127.0.0.1 -p 7005 -a 123456 shut down</span><br></pre></td></tr></table></figure>
+
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">chmod u+x shutdown.sh    #然后执行将shutdown.sh变成可执行文件</span><br><span class="line">./shutdown.sh 		#在当前目录下启动</span><br><span class="line">查看:ps aux | grep redis</span><br><span class="line">官方: /usr/1oca1/redis_cluster/redis-cli -a xxx -c -h 192.168.5.100 -p 8001</span><br><span class="line">提示: -a访问服务端密码，-c表示集群模式，-h指定ip地址，-p指定端口号</span><br></pre></td></tr></table></figure>
       
 
       
@@ -766,11 +950,11 @@ return o(i(t),arguments.length<2?void 0:u(arguments[1]))}})},function(t,n,r){var
           <ul class="article-tag-list" q-show="showTags">
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color3">docker,redis</a>
+                <a href="javascript:void(0)" class="js-tag color1">redis</a>
               </li>
              
               <li class="article-tag-list-item">
-                <a href="javascript:void(0)" class="js-tag color1">redis</a>
+                <a href="javascript:void(0)" class="js-tag color3">docker,redis</a>
               </li>
              
               <li class="article-tag-list-item">
